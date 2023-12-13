@@ -1,6 +1,7 @@
 from django.contrib.auth.models import AbstractUser
 from django.contrib.auth.validators import UnicodeUsernameValidator
 from django.db import models
+from django.core.validators import MaxValueValidator, MinValueValidator
 
 from .utils import UserRoles
 
@@ -9,20 +10,23 @@ username_validator = UnicodeUsernameValidator()
 
 class User(AbstractUser):
     username = models.CharField(
-        "Имя пользователя",
-        max_length=150,
+        verbose_name="Имя пользователя",
+        max_length=128,
         unique=True,
-        validators=[username_validator],
-        error_messages={
-            "unique": "Пользователь с таким именем уже существует!",
-        },
+        # validators=(
+        #     MinValueValidator(
+        #         3,
+        #         "Логин должен быть от 3 букв.",
+        #     ),
+        #     username_validator,
+        # ),
     )
     email = models.EmailField(
-        "Почта",
+        verbose_name="Почта",
         max_length=254,
         unique=True,
         error_messages={
-            'unique': "Пользователь с такой почтой уже существует!",
+            "unique": "Пользователь с такой почтой уже существует!",
         },
     )
     role = models.CharField(
@@ -32,15 +36,20 @@ class User(AbstractUser):
         default=UserRoles.user.name,
     )
     first_name = models.CharField(
-        "Имя", max_length=150, null=True, blank=True)
-    last_name = models.CharField(
-        "Фамилия", max_length=150, null=True, blank=True
-    )
-    confirmation_code = models.CharField(
-        "Код авторизациии",
-        max_length=60,
-        blank=True,
+        verbose_name="Имя",
+        max_length=150,
         null=True,
+        blank=True,
+    )
+    last_name = models.CharField(
+        verbose_name="Фамилия",
+        max_length=156,
+        null=True,
+        blank=True,
+    )
+    password = models.CharField(
+        verbose_name=("Пароль"),
+        max_length=128,
     )
 
     class Meta:
@@ -57,14 +66,5 @@ class User(AbstractUser):
     def full_name(self) -> str:
         return f"{self.first_name} {self.last_name}"
 
-    @property
-    def is_admin(self) -> bool:
-        return self.role == UserRoles.admin.name or self.is_superuser
-
-    @property
-    def is_user(self) -> bool:
-        return self.role == UserRoles.user.name
-
-    @property
-    def is_guest(self) -> bool:
-        return self.role == UserRoles.guest.name
+    def __str__(self) -> str:
+        return f"{self.username}: {self.email}"
