@@ -1,49 +1,37 @@
-from django.contrib import admin
+from django.contrib.admin import register
+from django.contrib.auth.admin import UserAdmin
+from users.models import User
 
-from .models import User
 
-
-@admin.register(User)
-class UsersAdmin(admin.ModelAdmin):
-    fieldsets = (
-        (None, {"fields": ("username", "email")}),
-        (
-            "Personal information",
-            {
-                "fields": (
-                    "first_name",
-                    "last_name",
-                )
-            },
-        ),
-        (
-            "Permissions",
-            {
-                "fields": (
-                    "is_active",
-                    "is_staff",
-                    "is_superuser",
-                    "user_permissions",
-                )
-            },
-        ),
-        ("Important dates", {"fields": ("last_login",)}),
-    )
+@register(User)
+class UserAdmin(UserAdmin):
     list_display = (
-        "id",
-        "username",
-        "full_name",
-    )
-    list_filter = (
-        "is_staff",
-        "is_superuser",
         "is_active",
-    )
-    search_fields = (
-        "full_name",
-        "id",
+        "username",
+        "first_name",
+        "last_name",
         "email",
     )
-    ordering = ("-id",)
-    filter_horizontal = ("user_permissions",)
-    readonly_fields = ("last_login",)
+    fields = (
+        ("is_active",),
+        (
+            "username",
+            "email",
+        ),
+        (
+            "first_name",
+            "last_name",
+        ),
+    )
+    fieldsets = []
+
+    search_fields = (
+        "username",
+        "email",
+    )
+    list_filter = (
+        "is_active",
+        "first_name",
+        "email",
+    )
+    save_on_top = True
