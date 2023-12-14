@@ -1,7 +1,6 @@
 from django.contrib.auth.models import AbstractUser
 from django.contrib.auth.validators import UnicodeUsernameValidator
 from django.db import models
-from django.core.validators import MaxValueValidator, MinValueValidator
 
 from .utils import UserRoles
 
@@ -10,16 +9,10 @@ username_validator = UnicodeUsernameValidator()
 
 class User(AbstractUser):
     username = models.CharField(
-        verbose_name="Имя пользователя",
+        verbose_name="Логин",
         max_length=128,
         unique=True,
-        # validators=(
-        #     MinValueValidator(
-        #         3,
-        #         "Логин должен быть от 3 букв.",
-        #     ),
-        #     username_validator,
-        # ),
+        validators=(UnicodeUsernameValidator(),),
     )
     email = models.EmailField(
         verbose_name="Почта",
@@ -62,9 +55,31 @@ class User(AbstractUser):
             )
         ]
 
-    @property
-    def full_name(self) -> str:
-        return f"{self.first_name} {self.last_name}"
-
     def __str__(self) -> str:
-        return f"{self.username}: {self.email}"
+        return self.username
+
+
+class Follow(models.Model):
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="follower",
+        verbose_name="Подписчик",
+    )
+    author = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="following",
+        verbose_name="Автор рецепта",
+    )
+
+    class Meta:
+        ordering = ["-id"]
+        verbose_name = "Подписка"
+        verbose_name_plural = "Подписки"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "author"],
+                name="unique follow",
+            )
+        ]

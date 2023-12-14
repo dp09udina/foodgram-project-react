@@ -21,20 +21,6 @@ COLOR_CHOICES = [
 
 
 class Tag(models.Model):
-    """Тэги для рецептов.
-
-    Связано с моделью Recipe через М2М.
-    Все поля обязательны для заполнения.
-
-    Attributes:
-        name(str):
-            Название тэга. Установлены ограничения по длине и уникальности.
-        color(str):
-            Цвет тэга в HEX-кодировке.
-        slug(str):
-            Те же правила, что и для атрибута `name`, но следует заполнять латинскими буквами.
-    """
-
     name = models.CharField(
         verbose_name="Тэг",
         max_length=64,
@@ -60,24 +46,10 @@ class Tag(models.Model):
         ordering = ("name",)
 
     def __str__(self) -> str:
-        return f"{self.name} (цвет: {self.color})"
+        return self.name
 
 
 class Ingredient(models.Model):
-    """Ингридиенты для рецепта.
-
-    Связано с моделью Recipe через М2М (AmountIngredient).
-    Все поля обязательны для заполнения.
-
-    Attributes:
-        name(str):
-            Название ингридиента.
-            Установлены ограничения по длине и уникальности.
-        measurement_unit(str):
-            Единицы измерения ингридентов (килограммы, граммы, литры, штуки и т.д.)
-            Установлены ограничения по длине.
-    """
-
     name = models.CharField("Название", max_length=256)
     measurement_unit = models.CharField("Единица измерения", max_length=32)
 
@@ -97,37 +69,6 @@ class Ingredient(models.Model):
 
 
 class Recipe(models.Model):
-    """Модель для рецептов.
-
-    Основная модель приложения описывающая рецепты.
-
-    Attributes:
-        name(str):
-            Название рецепта. Установлены ограничения по длине.
-        author(int):
-            Автор рецепта. Связан с моделю User через ForeignKey.
-        in_favorites(int):
-            Связь M2M с моделью User.
-            Создаётся при добавлении пользователем рецепта в `избранное`.
-        tags(int):
-            Связь M2M с моделью Tag.
-        ingredients(int):
-            Связь M2M с моделью Ingredient. Связь создаётся посредством модели
-            AmountIngredient с указанием количества ингридиента.
-        in_carts(int):
-            Связь M2M с моделью User.
-            Создаётся при добавлении пользователем рецепта в `покупки`.
-        pub_date(datetime):
-            Дата добавления рецепта. Прописывается автоматически.
-        image(str):
-            Изображение рецепта. Указывает путь к изображению.
-        text(str):
-            Описание рецепта. Установлены ограничения по длине.
-        cooking_time(int):
-            Время приготовления рецепта.
-            Установлены ограничения по максимальным и минимальным значениям.
-    """
-
     name = models.CharField(
         verbose_name="Название блюда",
         max_length=64,
@@ -194,20 +135,6 @@ class Recipe(models.Model):
 
 
 class AmountIngredient(models.Model):
-    """Количество ингридиентов в блюде.
-
-    Модель связывает Recipe и Ingredient с указанием количества ингридиента.
-
-    Attributes:
-        recipe(int):
-            Связаный рецепт.
-        ingredients(int):
-            Связаный ингридиент.
-        amount(int):
-            Количиства ингридиента в рецепте. Установлены ограничения
-            по минимальному и максимальному значениям.
-    """
-
     recipe = models.ForeignKey(
         verbose_name="В каких рецептах",
         related_name="ingredient",

@@ -1,62 +1,48 @@
-from django.shortcuts import get_object_or_404
-
+from typing import Any, Literal
+from django.contrib.auth import get_user_model
+from djoser.serializers import UserCreateSerializer, UserSerializer
 from rest_framework import serializers
+from rest_framework.validators import UniqueValidator
+from rest_framework.fields import SerializerMethodField
 
-from .models import User
+from users.models import Follow
+
+User = get_user_model()
 
 
-class UserSerializer(serializers.ModelSerializer):
+class UserSerializer(UserSerializer):
+    """Сериализатор пользователя"""
+
+    is_subscribed = SerializerMethodField(read_only=True)
+
     class Meta:
         model = User
         fields = (
-            "username",
             "email",
+            "id",
+            "username",
             "first_name",
             "last_name",
-            "bio",
-            "role",
+            "is_subscribed",
         )
 
-    def validate(self, data):
-        if data.get("username") != "me":
-            return data
-        raise serializers.ValidationError("Запрещенное имя пользователя")
+    def get_is_subscribed(self, obj) -> Any | Literal[False]:
+        request = self.context.get("request")
+        if request.user.is_anonymous:
+            return False
+        return obj.following.filter(user=request.user).exists()
 
 
-class UserEditSerializer(UserSerializer):
-    class Meta(UserSerializer.Meta):
-        read_only_fields = ("role",)
+class UserCreateSerializer(UserCreateSerializer):
+    """Сериализатор создания пользователя"""
 
-
-class RegistrationSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = User
-        fields = (
-            "email",
-            "username",
-        )
-
-    def validate_username(self, value):
-        if value == "me":
-            raise serializers.ValidationError(
-                "Невозможно создать пользователя с таким именем"
-            )
-        return value
-
-
-class ObtainTokenSerializer(serializers.ModelSerializer):
-    username = serializers.CharField(max_length=150)
-    confirmation_code = serializers.CharField(max_length=60)
+    email = serializers.EmailField(
+        validators=[UniqueValidator(queryset=User.objects.all())]
+    )
+    username = serializers.CharField(
+        validators=[UniqueValidator(queryset=User.objects.all())]
+    )
 
     class Meta:
         model = User
-        fields = ("username", "confirmation_code")
-
-        def validate(self, data):
-            username = data["username"]
-            user = get_object_or_404(User, username=username)
-            if user.confirmation_code != data["confirmation_code"]:
-                raise serializers.ValidationError(
-                    "Код подтверждения не верен!"
-                )
-            return data
+        fields = ("email", "username", "first_name", "last_name", "password")
