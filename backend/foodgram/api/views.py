@@ -4,6 +4,7 @@ from rest_framework import viewsets
 from rest_framework.viewsets import ReadOnlyModelViewSet
 
 from api.models import Ingredient, Recipe, Tag
+from api.pagination import LimitPageNumberPagination
 from api.permissions import IsAdminOrReadOnly, IsAuthorOrReadOnly
 from api.serializers import (
     IngredientSerializer,
@@ -28,6 +29,7 @@ class IngredientsViewSet(ReadOnlyModelViewSet):
 class RecipeViewSet(viewsets.ModelViewSet):
     queryset = Recipe.objects.all()
     serializer_class = RecipeSerializer
+    pagination_class = LimitPageNumberPagination
     permission_classes = [IsAuthorOrReadOnly]
 
     def perform_create(self, serializer) -> None:

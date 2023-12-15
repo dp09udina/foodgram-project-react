@@ -7,6 +7,7 @@ from rest_framework.generics import get_object_or_404
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
+from api.pagination import LimitPageNumberPagination
 from api.serializers import FollowSerializer
 from users.models import Follow
 
@@ -14,6 +15,8 @@ User = get_user_model()
 
 
 class UserViewSet(UserViewSet):
+    pagination_class = LimitPageNumberPagination
+
     @action(detail=True, permission_classes=[IsAuthenticated])
     def subscribe(self, request, id=None) -> Response:
         user = request.user
@@ -57,7 +60,5 @@ class UserViewSet(UserViewSet):
         user = request.user
         queryset = Follow.objects.filter(user=user)
         pages = self.paginate_queryset(queryset)
-        serializer = FollowSerializer(
-            pages, many=True, context={"request": request}
-        )
+        serializer = FollowSerializer(pages, many=True, context={"request": request})
         return self.get_paginated_response(serializer.data)
