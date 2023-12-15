@@ -4,10 +4,15 @@ from django.db import models
 
 from .utils import UserRoles
 
-username_validator = UnicodeUsernameValidator()
-
 
 class User(AbstractUser):
+    USERNAME_FIELD = "email"
+    REQUIRED_FIELDS = (
+        "username",
+        "first_name",
+        "last_name",
+    )
+
     username = models.CharField(
         verbose_name="Логин",
         max_length=128,
