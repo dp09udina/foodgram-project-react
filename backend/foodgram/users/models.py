@@ -2,8 +2,6 @@ from django.contrib.auth.models import AbstractUser
 from django.contrib.auth.validators import UnicodeUsernameValidator
 from django.db import models
 
-from .utils import UserRoles
-
 
 class User(AbstractUser):
     USERNAME_FIELD = "email"
@@ -27,23 +25,13 @@ class User(AbstractUser):
             "unique": "Пользователь с такой почтой уже существует!",
         },
     )
-    role = models.CharField(
-        max_length=25,
-        verbose_name="Роль",
-        choices=UserRoles.choice(),
-        default=UserRoles.user.name,
-    )
     first_name = models.CharField(
         verbose_name="Имя",
         max_length=150,
-        null=True,
-        blank=True,
     )
     last_name = models.CharField(
         verbose_name="Фамилия",
         max_length=156,
-        null=True,
-        blank=True,
     )
     password = models.CharField(
         verbose_name=("Пароль"),
