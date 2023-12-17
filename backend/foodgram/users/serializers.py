@@ -5,7 +5,6 @@ from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 from rest_framework.fields import SerializerMethodField
 
-from users.models import Follow
 
 User = get_user_model()
 
@@ -45,4 +44,11 @@ class UserCreateSerializer(UserCreateSerializer):
 
     class Meta:
         model = User
-        fields = ("email", "username", "first_name", "last_name", "password")
+        fields = (
+            "id",
+            "email",
+            "username",
+            "first_name",
+            "last_name",
+            "password",
+        )
