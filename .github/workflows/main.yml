@@ -72,6 +72,6 @@ jobs:
             sudo docker compose -f docker-compose.yml down
             sudo docker compose -f docker-compose.yml up -d
             # Выполняет миграции и сбор статики
-            sudo docker compose -f docker-compose.yml exec backend python backend/foodgram/manage.py migrate
-            sudo docker compose -f docker-compose.yml exec backend python backend/foodgram/manage.py collectstatic
+            sudo docker compose -f docker-compose.yml exec backend python app/manage.py migrate
+            sudo docker compose -f docker-compose.yml exec backend python app/manage.py collectstatic
             sudo docker compose -f docker-compose.yml exec backend cp -r /app/collected_static/. /backend_static/static/
