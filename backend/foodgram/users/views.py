@@ -38,7 +38,7 @@ class UserViewSet(UserViewSet):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @subscribe.mapping.delete
-    def del_subscribe(self, request, id=None) -> Response:
+    def unsubscribe(self, request, id=None) -> Response:
         user = request.user
         author = get_object_or_404(User, id=id)
         if user == author:
@@ -60,5 +60,7 @@ class UserViewSet(UserViewSet):
         user = request.user
         queryset = Follow.objects.filter(user=user)
         pages = self.paginate_queryset(queryset)
-        serializer = FollowSerializer(pages, many=True, context={"request": request})
+        serializer = FollowSerializer(
+            pages, many=True, context={"request": request}
+        )
         return self.get_paginated_response(serializer.data)
