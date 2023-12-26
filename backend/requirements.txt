@@ -9,4 +9,5 @@ python-dotenv
 psycopg2-binary
 pillow
 drf-extra-fields
-gunicorn==20.1.0 
+gunicorn==20.1.0
+django-filter
