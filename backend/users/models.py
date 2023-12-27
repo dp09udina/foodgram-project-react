@@ -13,7 +13,7 @@ class User(AbstractUser):
 
     username = models.CharField(
         verbose_name="Логин",
-        max_length=128,
+        max_length=150,
         unique=True,
         validators=(UnicodeUsernameValidator(),),
     )
@@ -31,7 +31,7 @@ class User(AbstractUser):
     )
     last_name = models.CharField(
         verbose_name="Фамилия",
-        max_length=156,
+        max_length=150,
     )
     password = models.CharField(
         verbose_name=("Пароль"),
