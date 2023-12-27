@@ -1,4 +1,4 @@
-from typing import Any, Literal
+from typing import Any
 from django.contrib.auth import get_user_model
 from djoser.serializers import UserCreateSerializer, UserSerializer
 from rest_framework import serializers
@@ -25,7 +25,7 @@ class UserSerializer(UserSerializer):
             "is_subscribed",
         )
 
-    def get_is_subscribed(self, obj) -> Any | Literal[False]:
+    def get_is_subscribed(self, obj):
         request = self.context.get("request")
         if request.user.is_anonymous:
             return False
