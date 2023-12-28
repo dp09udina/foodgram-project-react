@@ -9,7 +9,7 @@ from rest_framework.fields import SerializerMethodField
 User = get_user_model()
 
 
-class UserSerializer(UserSerializer):
+class CustomUserSerializer(UserSerializer):
     """Сериализатор пользователя"""
 
     is_subscribed = SerializerMethodField(read_only=True)
@@ -32,9 +32,7 @@ class UserSerializer(UserSerializer):
         return obj.following.filter(user=request.user).exists()
 
 
-class UserCreateSerializer(UserCreateSerializer):
-    """Сериализатор создания пользователя"""
-
+class CustomUserCreateSerializer(UserCreateSerializer):
     email = serializers.EmailField(
         validators=[UniqueValidator(queryset=User.objects.all())]
     )
@@ -45,10 +43,17 @@ class UserCreateSerializer(UserCreateSerializer):
     class Meta:
         model = User
         fields = (
-            "id",
             "email",
+            "id",
+            "password",
             "username",
             "first_name",
             "last_name",
-            "password",
         )
+        extra_kwargs = {
+            "email": {"required": True},
+            "username": {"required": True},
+            "password": {"required": True},
+            "first_name": {"required": True},
+            "last_name": {"required": True},
+        }

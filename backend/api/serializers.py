@@ -6,7 +6,7 @@ from drf_extra_fields.fields import Base64ImageField
 
 from api.models import Ingredient, AmountIngredient, Recipe, Tag
 from users.models import Follow
-from users.serializers import UserSerializer
+from users.serializers import CustomUserSerializer
 
 
 class TagSerializer(serializers.ModelSerializer):
@@ -51,7 +51,7 @@ class LiteRecipeSerializer(serializers.ModelSerializer):
 class RecipeSerializer(serializers.ModelSerializer):
     image = Base64ImageField()
     tags = TagSerializer(read_only=True, many=True)
-    author = UserSerializer(read_only=True)
+    author = CustomUserSerializer(read_only=True)
     ingredients = AmountIngredientSerializer(
         source="ingredientamount_set",
         many=True,
