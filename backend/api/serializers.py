@@ -109,7 +109,7 @@ class RecipeSerializer(serializers.ModelSerializer):
         data["ingredients"] = ingredients
         return data
 
-    def create_ingredients(self, ingredients, recipe) -> None:
+    def create_ingredients(self, ingredients, recipe):
         for ingredient in ingredients:
             AmountIngredient.objects.create(
                 recipe=recipe,

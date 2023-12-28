@@ -41,7 +41,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
     filter_class = TagFilter
     permission_classes = [IsAuthorOrReadOnly]
 
-    def perform_create(self, serializer) -> None:
+    def perform_create(self, serializer):
         serializer.save(author=self.request.user)
 
     @action(
@@ -49,7 +49,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
         methods=["get", "delete"],
         permission_classes=[IsAuthenticated],
     )
-    def favorite(self, request, pk=None) -> Response | None:
+    def favorite(self, request, pk=None):
         if request.method == "GET":
             return self.add_obj(Favorite, request.user, pk)
         elif request.method == "DELETE":
@@ -61,7 +61,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
         methods=["get", "delete"],
         permission_classes=[IsAuthenticated],
     )
-    def shopping_cart(self, request, pk=None) -> Response | None:
+    def shopping_cart(self, request, pk=None):
         if request.method == "GET":
             return self.add_obj(Cart, request.user, pk)
         elif request.method == "DELETE":
