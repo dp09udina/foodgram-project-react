@@ -142,7 +142,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
         if Recipe.objects.filter(id=pk).exists():
             recipe = get_object_or_404(Recipe, id=pk)
         else:
-            print("sdfs")
             return Response(status=status.HTTP_400_BAD_REQUEST)
         data = {"user": request.user.id, "recipe": recipe.id}
         # if not Favorite.objects.filter(
@@ -153,7 +152,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
         )
 
         if serializer.is_valid(raise_exception=True):
-            print(serializer.data)
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         # return Response(status=status.HTTP_400_BAD_REQUEST)
@@ -166,43 +164,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
             return Response(status=status.HTTP_204_NO_CONTENT)
         else:
             return Response(status=status.HTTP_400_BAD_REQUEST)
-
-    # def update(self, request, *args, **kwargs):
-    #     instance = self.get_object()
-    #     data = request.data
-    #     data["author"] = request.user.id
-    #     ingredientss = data.get("ingredients")
-    #     if "ingredients" in data:
-    #         ingredients = data.pop("ingredients")
-    #         ingredients_ids = [ingredient["id"] for ingredient in ingredients]
-    #         data["ingredients"] = ingredients_ids
-
-    #     serializer = self.get_serializer(
-    #         instance,
-    #         data=request.data,
-    #         context={"ingredients": ingredientss, "request": request},
-    #     )
-    #     serializer.is_valid(raise_exception=True)
-    #     serializer.save()
-    #     return Response(serializer.data)
-
-    # def create(self, request, *args, **kwargs):
-    #     data = request.data
-    #     data["author"] = request.user.id
-    #     ingredientss = data.get("ingredients")
-    #     if "ingredients" in data:
-    #         ingredients = data.pop("ingredients")
-    #         ingredients_ids = [ingredient["id"] for ingredient in ingredients]
-    #         data["ingredients"] = ingredients_ids
-
-    #     serializer = self.get_serializer(
-    #         data=request.data,
-    #         context={"ingredients": ingredientss, "request": request},
-    #     )
-    #     serializer.is_valid(raise_exception=True)
-    #     serializer.save()
-
-    #     return Response(serializer.data)
 
 
 class UserViewSet(UserViewSet):

@@ -1,6 +1,7 @@
 from django.shortcuts import get_object_or_404
 from djoser.serializers import UserCreateSerializer, UserSerializer
-from drf_extra_fields.fields import Base64ImageField
+
+# from drf_extra_fields.fields import Base64ImageField
 from rest_framework import serializers, status
 from rest_framework.exceptions import ValidationError
 from rest_framework.fields import SerializerMethodField
@@ -17,6 +18,21 @@ from recipes.models import (
     Tag,
 )
 from users.models import User
+
+import base64
+
+from django.core.files.base import ContentFile
+
+
+class Base64ImageField(serializers.ImageField):
+    def to_internal_value(self, data):
+        if isinstance(data, str) and data.startswith("data:image"):
+            format, imgstr = data.split(";base64,")
+            ext = format.split("/")[-1]
+
+            data = ContentFile(base64.b64decode(imgstr), name="temp." + ext)
+
+        return super().to_internal_value(data)
 
 
 class UserSerializer(UserSerializer):
@@ -228,7 +244,7 @@ class CreateRecipeSerializer(serializers.ModelSerializer):
             if not Tag.objects.filter(id=tag.id).exists():
                 raise serializers.ValidationError(
                     "Указанного тега не существует",
-                    status=status.HTTP_400_BAD_REQUEST,
+                    code=status.HTTP_400_BAD_REQUEST,
                 )
         return tags
 
