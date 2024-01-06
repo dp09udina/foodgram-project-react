@@ -117,8 +117,9 @@ class RecipeViewSet(viewsets.ModelViewSet):
                     return Response(
                         serializer.data, status=status.HTTP_201_CREATED
                     )
+            else:
+                return Response(status=status.HTTP_400_BAD_REQUEST)
         else:
-            print(status.HTTP_400_BAD_REQUEST)
             return Response(status=status.HTTP_400_BAD_REQUEST)
         # serializer = ShoppingCartSerializer(data=data, context=context)
         # serializer.is_valid(raise_exception=True)
