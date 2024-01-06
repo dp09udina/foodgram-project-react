@@ -205,15 +205,20 @@ class UserViewSet(UserViewSet):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
         if request.method == "DELETE":
-            if Follow.objects.filter(
-                user=request.user, author=author
-            ).exists():
-                following = get_object_or_404(
-                    Follow, user=request.user, author=author
-                )
-                following.delete()
-                return Response(status=status.HTTP_204_NO_CONTENT)
-            return Response(status=status.HTTP_400_BAD_REQUEST)
+            print(request.user.is_anonymous)
+            if not request.user.is_anonymous:
+                if Follow.objects.filter(
+                    user=request.user, author=author
+                ).exists():
+                    following = get_object_or_404(
+                        Follow, user=request.user, author=author
+                    )
+                    following.delete()
+                    return Response(status=status.HTTP_204_NO_CONTENT)
+                else:
+                    return Response(status=status.HTTP_400_BAD_REQUEST)
+            else:
+                return Response(status=status.HTTP_401_UNAUTHORIZED)
 
     @action(detail=False, permission_classes=[IsAuthenticated])
     def subscriptions(self, request):
