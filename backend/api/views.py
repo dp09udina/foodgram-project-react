@@ -128,11 +128,16 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     @shopping_cart.mapping.delete
     def destroy_shopping_cart(self, request, pk):
-        get_object_or_404(
-            ShoppingCart,
-            user=request.user.id,
-            recipe=get_object_or_404(Recipe, id=pk),
-        ).delete()
+        if ShoppingCart.objects.filter(
+            user=request.user.id, recipe=get_object_or_404(Recipe, id=pk)
+        ).exists():
+            get_object_or_404(
+                ShoppingCart,
+                user=request.user.id,
+                recipe=get_object_or_404(Recipe, id=pk),
+            ).delete()
+        else:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(
