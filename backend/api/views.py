@@ -62,7 +62,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     queryset = Recipe.objects.all()
     serializer_class = CreateRecipeSerializer
-    permission_classes = (AuthorPermission,)
+    permission_classes = (AuthorPermission, IsAuthenticatedOrReadOnly)
     pagination_class = CustomPagination
     filter_backends = (DjangoFilterBackend,)
     filterset_class = RecipeFilter
@@ -195,7 +195,6 @@ class UserViewSet(UserViewSet):
     def subscribe(self, request, id):
         user = request.user
         author = get_object_or_404(User, pk=id)
-
         if request.method == "POST":
             serializer = SubscribeListSerializer(
                 author, data=request.data, context={"request": request}
@@ -205,7 +204,6 @@ class UserViewSet(UserViewSet):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
         if request.method == "DELETE":
-            print(request.user.is_anonymous)
             if not request.user.is_anonymous:
                 if Follow.objects.filter(
                     user=request.user, author=author

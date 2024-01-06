@@ -240,34 +240,44 @@ class CreateRecipeSerializer(serializers.ModelSerializer):
         )
 
     def validate_tags(self, tags):
-        for tag in tags:
-            if not Tag.objects.filter(id=tag.id).exists():
-                raise serializers.ValidationError(
-                    "Указанного тега не существует",
-                    code=status.HTTP_400_BAD_REQUEST,
-                )
+        if not tags:
+            raise ValidationError(
+                detail="Отсутствует тег",
+                code=status.HTTP_400_BAD_REQUEST,
+            )
+        if tags != list(set(tags)):
+            raise ValidationError(
+                detail="Одинаковые теги",
+                code=status.HTTP_400_BAD_REQUEST,
+            )
         return tags
 
     def validate_cooking_time(self, cooking_time):
         if cooking_time < 1:
             raise serializers.ValidationError(
-                "Время готовки должно быть не меньше одной минуты"
+                "Время готовки должно быть не меньше одной минуты",
+                code=status.HTTP_400_BAD_REQUEST,
             )
         return cooking_time
 
     def validate_ingredients(self, ingredients):
         ingredients_list = []
         if not ingredients:
-            raise serializers.ValidationError("Отсутствуют ингридиенты")
+            raise serializers.ValidationError(
+                "Отсутствуют ингридиенты",
+                code=status.HTTP_400_BAD_REQUEST,
+            )
         for ingredient in ingredients:
             if ingredient["id"] in ingredients_list:
                 raise serializers.ValidationError(
-                    "Ингридиенты должны быть уникальны"
+                    "Ингридиенты должны быть уникальны",
+                    code=status.HTTP_400_BAD_REQUEST,
                 )
             ingredients_list.append(ingredient["id"])
             if int(ingredient.get("amount")) < 1:
                 raise serializers.ValidationError(
-                    "Количество ингредиента больше 0"
+                    "Количество ингредиента больше 0",
+                    code=status.HTTP_400_BAD_REQUEST,
                 )
         return ingredients
 
@@ -291,33 +301,20 @@ class CreateRecipeSerializer(serializers.ModelSerializer):
                 detail="Неавторизованный пользователь",
                 code=status.HTTP_401_UNAUTHORIZED,
             )
-        else:
-            tags = validated_data.pop("tags")
-            if tags != list(set(tags)):
-                raise ValidationError(
-                    detail="Одинаковые теги",
-                    code=status.HTTP_400_BAD_REQUEST,
-                )
-            image = validated_data.get("image")
-            if not tags:
-                raise ValidationError(
-                    detail="Отсутствует тег",
-                    code=status.HTTP_400_BAD_REQUEST,
-                )
-            if not image:
-                raise ValidationError(
-                    detail="Отсутствует фото",
-                    code=status.HTTP_400_BAD_REQUEST,
-                )
-
-            ingredients = validated_data.pop("ingredients")
-
-            recipe = Recipe.objects.create(
-                author=request.user, **validated_data
+        tags = validated_data.pop("tags")
+        image = validated_data.get("image")
+        if not image:
+            raise ValidationError(
+                detail="Отсутствует фото",
+                code=status.HTTP_400_BAD_REQUEST,
             )
-            recipe.tags.set(tags)
-            self.create_ingredients(recipe, ingredients)
-            return recipe
+
+        ingredients = validated_data.pop("ingredients")
+
+        recipe = Recipe.objects.create(author=request.user, **validated_data)
+        recipe.tags.set(tags)
+        self.create_ingredients(recipe, ingredients)
+        return recipe
 
     def update(self, instance, validated_data):
         instance.tags.clear()
