@@ -1,5 +1,8 @@
 from django.shortcuts import get_object_or_404
 from djoser.serializers import UserCreateSerializer, UserSerializer
+from django.db import transaction
+from django.db.transaction import atomic
+from django.db.models import F, QuerySet
 
 # from drf_extra_fields.fields import Base64ImageField
 from rest_framework import serializers, status
@@ -211,20 +214,23 @@ class RecipeReadSerializer(serializers.ModelSerializer):
         return obj.shopping_list.filter(user=request.user).exists()
 
 
-class CreateRecipeSerializer(serializers.ModelSerializer):
-    """Сериализатор для создания рецепта"""
+class IngredientInRecipeWriteSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(write_only=True)
 
-    ingredients = IngredientRecipeSerializer(
-        many=True,
-    )
+    class Meta:
+        model = IngredientRecipe
+        fields = ("id", "amount")
+
+
+class CreateRecipeSerializer(serializers.ModelSerializer):
+    """Сериализатор для рецептов."""
+
     tags = serializers.PrimaryKeyRelatedField(
-        many=True,
-        queryset=Tag.objects.all(),
-        # error_messages={"does_not_exist": "Указанного тега не существует"},
+        queryset=Tag.objects.all(), many=True
     )
-    image = Base64ImageField(max_length=None)
     author = UserSerializer(read_only=True)
-    cooking_time = serializers.IntegerField()
+    ingredients = IngredientInRecipeWriteSerializer(many=True)
+    image = Base64ImageField()
 
     class Meta:
         model = Recipe
@@ -281,81 +287,99 @@ class CreateRecipeSerializer(serializers.ModelSerializer):
                 )
         return ingredients
 
-    @staticmethod
-    def create_ingredients(recipe, ingredients):
+    @transaction.atomic
+    def create_ingredients_amounts(self, ingredients, recipe):
         ingredient_list = []
+        print(ingredients)
         for ingredient_data in ingredients:
-            ingredient_list.append(
-                IngredientRecipe(
-                    ingredient=ingredient_data.pop("id"),
-                    amount=ingredient_data.pop("amount"),
-                    recipe=recipe,
-                )
-            )
-        IngredientRecipe.objects.bulk_create(ingredient_list)
-
-    def create(self, validated_data):
-        request = self.context.get("request", None)
-        if not request or request.user.is_anonymous:
-            raise ValidationError(
-                detail="Неавторизованный пользователь",
-                code=status.HTTP_401_UNAUTHORIZED,
-            )
-        tags = validated_data.pop("tags")
-        image = validated_data.get("image")
-        if not image:
-            raise ValidationError(
-                detail="Отсутствует фото",
-                code=status.HTTP_400_BAD_REQUEST,
-            )
-
-        ingredients = validated_data.pop("ingredients")
-
-        recipe = Recipe.objects.create(author=request.user, **validated_data)
-        recipe.tags.set(tags)
-        self.create_ingredients(recipe, ingredients)
-        return recipe
-
-    def update(self, instance, validated_data):
-        instance.tags.clear()
-        IngredientRecipe.objects.filter(recipe=instance).delete()
-        if validated_data.get("tags"):
-            if validated_data.get("tags") != list(
-                set(validated_data.get("tags"))
-            ):
-                raise ValidationError(
-                    detail="Одинаковые теги",
+            if Ingredient.objects.filter(id=ingredient_data["id"]).exists():
+                ingredient_list.append(
+                    IngredientRecipe(
+                        ingredient=Ingredient.objects.get(
+                            id=ingredient_data["id"]
+                        ),
+                        amount=ingredient_data["amount"],
+                        recipe=recipe,
+                    )
+                )  # if Ingredient.objects.get(id=ingredient_data["id"]) else error = True
+            else:
+                raise serializers.ValidationError(
+                    "Отсутствуют ингридиенты",
                     code=status.HTTP_400_BAD_REQUEST,
                 )
-            instance.tags.set(validated_data.get("tags"))
+        IngredientRecipe.objects.bulk_create(ingredient_list)
+
+        # IngredientRecipe.objects.bulk_create(
+        #     [
+        #         IngredientRecipe(
+        #             ingredient=Ingredient.objects.get(id=ingredient["id"]),
+        #             recipe=recipe,
+        #             amount=ingredient["amount"],
+        #         )
+        #         for ingredient in ingredients
+        #     ]
+        # )
+
+    @transaction.atomic
+    def create(self, validated_data):
+        if not validated_data.get("tags"):
+            raise serializers.ValidationError(
+                "Отсутствуют ингридиенты",
+                code=status.HTTP_400_BAD_REQUEST,
+            )
+        tags = validated_data.pop("tags")
+        request = self.context.get("request", None)
+        if not validated_data.get("ingredients"):
+            raise serializers.ValidationError(
+                "Отсутствуют ингридиенты",
+                code=status.HTTP_400_BAD_REQUEST,
+            )
+        ingredients = validated_data.pop("ingredients")
+        recipe = Recipe.objects.create(author=request.user, **validated_data)
+        recipe.tags.set(tags)
+        if not ingredients:
+            raise serializers.ValidationError(
+                "Отсутствуют ингридиенты",
+                code=status.HTTP_400_BAD_REQUEST,
+            )
         else:
-            raise ValidationError(
-                detail="Отсутствует тэг",
+            self.create_ingredients_amounts(
+                recipe=recipe, ingredients=ingredients
+            )
+        return recipe
+
+    @transaction.atomic
+    def update(self, instance, validated_data):
+        if not validated_data.get("ingredients"):
+            raise serializers.ValidationError(
+                "Отсутствуют ингридиенты",
                 code=status.HTTP_400_BAD_REQUEST,
             )
-        if validated_data.get("ingredients"):
-            ingredients = validated_data.get("ingredients")
-        else:
-            raise ValidationError(
-                detail="Отсутствует ингридиент",
+        if not validated_data.get("tags"):
+            raise serializers.ValidationError(
+                "Отсутствуют ингридиенты",
                 code=status.HTTP_400_BAD_REQUEST,
             )
-        if not validated_data.get("image"):
-            raise ValidationError(
-                detail="Отсутствует фото",
-                code=status.HTTP_400_BAD_REQUEST,
-            )
-        self.create_ingredients(instance, ingredients)
-        return super().update(instance, validated_data)
+        tags = validated_data.pop("tags")
+        ingredients = validated_data.pop("ingredients")
+        instance = super().update(instance, validated_data)
+        instance.tags.clear()
+        instance.tags.set(tags)
+        instance.ingredients.clear()
+        self.create_ingredients_amounts(
+            recipe=instance, ingredients=ingredients
+        )
+        instance.save()
+        return instance
 
     def to_representation(self, instance):
-        return RecipeReadSerializer(
-            instance, context={"request": self.context.get("request")}
-        ).data
+        request = self.context.get("request")
+        context = {"request": request}
+        return RecipeReadSerializer(instance, context=context).data
 
 
 class LiteRecipeSerializer(serializers.ModelSerializer):
-    # image = Base64ImageField()
+    image = Base64ImageField()
 
     class Meta:
         model = Recipe
@@ -374,7 +398,6 @@ class FavoriteSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         user = data["user"]
-        print(user.favorites.filter(recipe=data["recipe"]))
         if user.favorites.filter(recipe=data["recipe"]).exists():
             raise serializers.ValidationError(
                 "Рецепт уже добавлен в избранное."
