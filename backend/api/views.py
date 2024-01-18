@@ -72,7 +72,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     def get_serializer_class(
         self,
-    ) -> type[RecipeReadSerializer] | type[CreateRecipeSerializer]:
+    )
         if self.request.method == "GET":
             return RecipeReadSerializer
         return CreateRecipeSerializer
@@ -106,7 +106,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
     @action(
         detail=True, methods=("POST",), permission_classes=[IsAuthenticated]
     )
-    def shopping_cart(self, request, pk) -> Response | None:
+    def shopping_cart(self, request, pk):
         if Recipe.objects.filter(id=pk).exists():
             recipe = get_object_or_404(Recipe, id=pk)
             data = {"user": request.user.id, "recipe": recipe.id}
@@ -143,7 +143,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
     @action(
         detail=True, methods=("POST",), permission_classes=[IsAuthenticated]
     )
-    def favorite(self, request, pk) -> Response | None:
+    def favorite(self, request, pk):
         if Recipe.objects.filter(id=pk).exists():
             recipe = get_object_or_404(Recipe, id=pk)
         else:
