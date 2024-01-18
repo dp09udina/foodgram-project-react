@@ -6,9 +6,9 @@ from djoser.views import UserViewSet
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import (
+    AllowAny,
     IsAuthenticated,
     IsAuthenticatedOrReadOnly,
-    AllowAny,
 )
 from rest_framework.response import Response
 
@@ -70,13 +70,15 @@ class RecipeViewSet(viewsets.ModelViewSet):
     filter_backends = (DjangoFilterBackend,)
     filterset_class = RecipeFilter
 
-    def get_serializer_class(self):
+    def get_serializer_class(
+        self,
+    ) -> type[RecipeReadSerializer] | type[CreateRecipeSerializer]:
         if self.request.method == "GET":
             return RecipeReadSerializer
         return CreateRecipeSerializer
 
     @staticmethod
-    def send_message(ingredients):
+    def send_message(ingredients) -> HttpResponse:
         shopping_list = "Купить в магазине:"
         for ingredient in ingredients:
             shopping_list += (
@@ -90,7 +92,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
         return response
 
     @action(detail=False, methods=["GET"])
-    def download_shopping_cart(self, request):
+    def download_shopping_cart(self, request) -> HttpResponse:
         ingredients = (
             IngredientRecipe.objects.filter(
                 recipe__shopping_list__user=request.user
@@ -104,8 +106,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
     @action(
         detail=True, methods=("POST",), permission_classes=[IsAuthenticated]
     )
-    def shopping_cart(self, request, pk):
-        # context = {"request": request}
+    def shopping_cart(self, request, pk) -> Response | None:
         if Recipe.objects.filter(id=pk).exists():
             recipe = get_object_or_404(Recipe, id=pk)
             data = {"user": request.user.id, "recipe": recipe.id}
@@ -124,13 +125,9 @@ class RecipeViewSet(viewsets.ModelViewSet):
                 return Response(status=status.HTTP_400_BAD_REQUEST)
         else:
             return Response(status=status.HTTP_400_BAD_REQUEST)
-        # serializer = ShoppingCartSerializer(data=data, context=context)
-        # serializer.is_valid(raise_exception=True)
-        # serializer.save()
-        # return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @shopping_cart.mapping.delete
-    def destroy_shopping_cart(self, request, pk):
+    def destroy_shopping_cart(self, request, pk) -> Response:
         if ShoppingCart.objects.filter(
             user=request.user.id, recipe=get_object_or_404(Recipe, id=pk)
         ).exists():
@@ -146,16 +143,12 @@ class RecipeViewSet(viewsets.ModelViewSet):
     @action(
         detail=True, methods=("POST",), permission_classes=[IsAuthenticated]
     )
-    def favorite(self, request, pk):
-        context = {"request": request}
+    def favorite(self, request, pk) -> Response | None:
         if Recipe.objects.filter(id=pk).exists():
             recipe = get_object_or_404(Recipe, id=pk)
         else:
             return Response(status=status.HTTP_400_BAD_REQUEST)
         data = {"user": request.user.id, "recipe": recipe.id}
-        # if not Favorite.objects.filter(
-        #     user=request.user, recipe__id=recipe.id
-        # ).exists():
         serializer = FavoriteSerializer(
             data=data, context={"request": request}
         )
@@ -163,10 +156,9 @@ class RecipeViewSet(viewsets.ModelViewSet):
         if serializer.is_valid(raise_exception=True):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
-        # return Response(status=status.HTTP_400_BAD_REQUEST)
 
     @favorite.mapping.delete
-    def destroy_favorite(self, request, pk):
+    def destroy_favorite(self, request, pk) -> Response:
         recipe = get_object_or_404(Recipe, id=pk)
         if Favorite.objects.filter(user=request.user, recipe=recipe).exists():
             Favorite.objects.filter(user=request.user, recipe=recipe).delete()
@@ -180,10 +172,9 @@ class UserViewSet(UserViewSet):
     serializer_class = UserSerializer
     pagination_class = CustomPagination
 
-    def get_permissions(self):
-        """Дает доступ к определенным эндпоинтам только аутентифицированным
-        пользователям и разрешает метод delete только для своих подписок."""
-
+    def get_permissions(
+        self,
+    ) -> list[IsSubscribeOnly] | list[IsAuthenticated] | list[AllowAny]:
         if self.request.method == "DELETE":
             return [IsSubscribeOnly()]
         if self.action in ["me", "subscriptions", "subscribe"]:

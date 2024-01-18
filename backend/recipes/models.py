@@ -1,5 +1,4 @@
 from colorfield.fields import ColorField
-from django.conf import settings
 from django.core.validators import (
     MaxValueValidator,
     MinValueValidator,
@@ -64,7 +63,7 @@ class Tag(models.Model):
         verbose_name = "Тег"
         verbose_name_plural = "Теги"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.name
 
 
@@ -109,7 +108,7 @@ class Recipe(models.Model):
         verbose_name = "Рецепт"
         verbose_name_plural = "Рецепты"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.name
 
 
@@ -136,7 +135,7 @@ class FavoriteShoppingCart(models.Model):
             )
         ]
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.user} :: {self.recipe}"
 
 
@@ -180,7 +179,7 @@ class IngredientRecipe(models.Model):
         verbose_name = "Ингредиент"
         verbose_name_plural = "Ингредиенты рецепта"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return (
             f"{self.ingredient.name} :: {self.ingredient.measurement_unit}"
             f" - {self.amount} "

@@ -1,16 +1,13 @@
-from django.shortcuts import get_object_or_404
-from djoser.serializers import UserCreateSerializer, UserSerializer
+import base64
+
+from django.core.files.base import ContentFile
 from django.db import transaction
 from django.db.transaction import atomic
-from django.db.models import F, QuerySet
-
-# from drf_extra_fields.fields import Base64ImageField
+from django.shortcuts import get_object_or_404
+from djoser.serializers import UserCreateSerializer, UserSerializer
 from rest_framework import serializers, status
 from rest_framework.exceptions import ValidationError
 from rest_framework.fields import SerializerMethodField
-from rest_framework.response import Response
-from rest_framework import status
-from django.contrib.auth.models import AnonymousUser
 
 from recipes.models import (
     Favorite,
@@ -21,10 +18,6 @@ from recipes.models import (
     Tag,
 )
 from users.models import User
-
-import base64
-
-from django.core.files.base import ContentFile
 
 
 class Base64ImageField(serializers.ImageField):
@@ -289,36 +282,23 @@ class CreateRecipeSerializer(serializers.ModelSerializer):
 
     @transaction.atomic
     def create_ingredients_amounts(self, ingredients, recipe):
-        ingredient_list = []
-        print(ingredients)
-        for ingredient_data in ingredients:
-            if Ingredient.objects.filter(id=ingredient_data["id"]).exists():
-                ingredient_list.append(
-                    IngredientRecipe(
-                        ingredient=Ingredient.objects.get(
-                            id=ingredient_data["id"]
-                        ),
-                        amount=ingredient_data["amount"],
-                        recipe=recipe,
-                    )
-                )  # if Ingredient.objects.get(id=ingredient_data["id"]) else error = True
-            else:
-                raise serializers.ValidationError(
-                    "Отсутствуют ингридиенты",
-                    code=status.HTTP_400_BAD_REQUEST,
-                )
-        IngredientRecipe.objects.bulk_create(ingredient_list)
-
-        # IngredientRecipe.objects.bulk_create(
-        #     [
-        #         IngredientRecipe(
-        #             ingredient=Ingredient.objects.get(id=ingredient["id"]),
-        #             recipe=recipe,
-        #             amount=ingredient["amount"],
-        #         )
-        #         for ingredient in ingredients
-        #     ]
-        # )
+        ingredient_list = [
+            IngredientRecipe(
+                ingredient=Ingredient.objects.get(id=ingredient["id"]),
+                recipe=recipe,
+                amount=ingredient["amount"],
+            )
+            if Ingredient.objects.filter(id=ingredient["id"]).exists()
+            else None
+            for ingredient in ingredients
+        ]
+        if None in ingredient_list:
+            raise serializers.ValidationError(
+                "Отсутствуют ингридиенты",
+                code=status.HTTP_400_BAD_REQUEST,
+            )
+        else:
+            IngredientRecipe.objects.bulk_create(ingredient_list)
 
     @transaction.atomic
     def create(self, validated_data):
