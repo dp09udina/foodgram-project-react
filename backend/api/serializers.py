@@ -337,7 +337,7 @@ class CreateRecipeSerializer(serializers.ModelSerializer):
             )
         if not validated_data.get("tags"):
             raise serializers.ValidationError(
-                "Отсутствуют ингридиенты",
+                "Отсутствуют теги",
                 code=status.HTTP_400_BAD_REQUEST,
             )
         tags = validated_data.pop("tags")
