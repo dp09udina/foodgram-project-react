@@ -2,7 +2,6 @@ import base64
 
 from django.core.files.base import ContentFile
 from django.db import transaction
-from django.db.transaction import atomic
 from django.shortcuts import get_object_or_404
 from djoser.serializers import UserCreateSerializer, UserSerializer
 from rest_framework import serializers, status
