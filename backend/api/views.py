@@ -72,7 +72,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     def get_serializer_class(
         self,
-    )
+    ):
         if self.request.method == "GET":
             return RecipeReadSerializer
         return CreateRecipeSerializer
