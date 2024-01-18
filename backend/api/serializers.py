@@ -243,11 +243,11 @@ class CreateRecipeSerializer(serializers.ModelSerializer):
                 detail="Отсутствует тег",
                 code=status.HTTP_400_BAD_REQUEST,
             )
-        if tags != list(set(tags)):
-            raise ValidationError(
-                detail="Одинаковые теги",
-                code=status.HTTP_400_BAD_REQUEST,
-            )
+        # if tags != list(set(tags)):
+        #     raise ValidationError(
+        #         detail="Одинаковые теги",
+        #         code=status.HTTP_400_BAD_REQUEST,
+        #     )
         return tags
 
     def validate_cooking_time(self, cooking_time):
