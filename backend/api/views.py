@@ -174,7 +174,7 @@ class UserViewSet(UserViewSet):
 
     def get_permissions(
         self,
-    ) -> list[IsSubscribeOnly] | list[IsAuthenticated] | list[AllowAny]:
+    ):
         if self.request.method == "DELETE":
             return [IsSubscribeOnly()]
         if self.action in ["me", "subscriptions", "subscribe"]:
