@@ -52,7 +52,6 @@ sudo docker-compose exec backend python manage.py collectstatic
 6. Скопируйте предустановленные данные json:
 ```
 sudo docker-compose exec backend python manage.py load_data
-sudo docker-compose exec backend python manage.py load_data
 ```
 
 ### Подготовка к запуску проекта на удаленном сервере
