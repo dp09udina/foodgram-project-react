@@ -9,7 +9,7 @@ class Command(BaseCommand):
     help = " Загрузить данные в модель ингредиентов "
 
     def handle(self, *args, **options):
-        self.stdout.write(self.style.INFO("Старт"))
+        self.stdout.write(self.style.NOTICE("Старт"))
         with open(
             "backend/data/ingredients.json",
             encoding="utf-8",
