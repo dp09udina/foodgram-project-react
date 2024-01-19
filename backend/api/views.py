@@ -12,6 +12,7 @@ from rest_framework.permissions import (
 )
 from rest_framework.response import Response
 
+import api.constraints
 from recipes.models import (
     Favorite,
     Ingredient,
@@ -86,7 +87,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
                 f"({ingredient['ingredient__measurement_unit']}) - "
                 f"{ingredient['amount']}"
             )
-        file = "shopping_list.txt"
+        file = api.constraints.SHOPPING_LIST_NAME
         response = HttpResponse(shopping_list, content_type="text/plain")
         response["Content-Disposition"] = f'attachment; filename="{file}.txt"'
         return response
@@ -107,37 +108,34 @@ class RecipeViewSet(viewsets.ModelViewSet):
         detail=True, methods=("POST",), permission_classes=[IsAuthenticated]
     )
     def shopping_cart(self, request, pk):
-        if Recipe.objects.filter(id=pk).exists():
-            recipe = get_object_or_404(Recipe, id=pk)
-            data = {"user": request.user.id, "recipe": recipe.id}
-            if not ShoppingCart.objects.filter(
-                user=request.user, recipe=recipe
-            ).exists():
-                serializer = ShoppingCartSerializer(
-                    data=data, context={"request": request}
-                )
-                if serializer.is_valid(raise_exception=True):
-                    serializer.save()
-                    return Response(
-                        serializer.data, status=status.HTTP_201_CREATED
-                    )
-            else:
-                return Response(status=status.HTTP_400_BAD_REQUEST)
-        else:
+        if not Recipe.objects.filter(id=pk).first():
             return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        recipe = get_object_or_404(Recipe, id=pk)
+        data = {"user": request.user.id, "recipe": recipe.id}
+        if ShoppingCart.objects.filter(
+            user=request.user, recipe=recipe
+        ).first():
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+        serializer = ShoppingCartSerializer(
+            data=data, context={"request": request}
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @shopping_cart.mapping.delete
     def destroy_shopping_cart(self, request, pk) -> Response:
-        if ShoppingCart.objects.filter(
-            user=request.user.id, recipe=get_object_or_404(Recipe, id=pk)
-        ).exists():
-            get_object_or_404(
-                ShoppingCart,
-                user=request.user.id,
-                recipe=get_object_or_404(Recipe, id=pk),
-            ).delete()
-        else:
+        recipe = get_object_or_404(Recipe, id=pk)
+        if not ShoppingCart.objects.filter(
+            user=request.user.id, recipe=recipe
+        ).first():
             return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        ShoppingCart.objects.filter(
+            user=request.user.id, recipe=recipe
+        ).delete()
+
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(
@@ -153,18 +151,18 @@ class RecipeViewSet(viewsets.ModelViewSet):
             data=data, context={"request": request}
         )
 
-        if serializer.is_valid(raise_exception=True):
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @favorite.mapping.delete
     def destroy_favorite(self, request, pk) -> Response:
         recipe = get_object_or_404(Recipe, id=pk)
-        if Favorite.objects.filter(user=request.user, recipe=recipe).exists():
+        if Favorite.objects.filter(user=request.user, recipe=recipe).first():
             Favorite.objects.filter(user=request.user, recipe=recipe).delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
-        else:
-            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(status=status.HTTP_400_BAD_REQUEST)
 
 
 class UserViewSet(UserViewSet):
@@ -198,19 +196,17 @@ class UserViewSet(UserViewSet):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
         if request.method == "DELETE":
-            if not request.user.is_anonymous:
-                if Follow.objects.filter(
-                    user=request.user, author=author
-                ).exists():
-                    following = get_object_or_404(
-                        Follow, user=request.user, author=author
-                    )
-                    following.delete()
-                    return Response(status=status.HTTP_204_NO_CONTENT)
-                else:
-                    return Response(status=status.HTTP_400_BAD_REQUEST)
-            else:
+            if request.user.is_anonymous:
                 return Response(status=status.HTTP_401_UNAUTHORIZED)
+            if not Follow.objects.filter(
+                user=request.user, author=author
+            ).first():
+                return Response(status=status.HTTP_400_BAD_REQUEST)
+            following = get_object_or_404(
+                Follow, user=request.user, author=author
+            )
+            following.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=False, permission_classes=[IsAuthenticated])
     def subscriptions(self, request):
