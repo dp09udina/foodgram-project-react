@@ -1,12 +1,13 @@
 import base64
 
 from django.core.files.base import ContentFile
-from django.db import transaction
 from django.shortcuts import get_object_or_404
 from djoser.serializers import UserCreateSerializer, UserSerializer
 from rest_framework import serializers, status
 from rest_framework.exceptions import ValidationError
 from rest_framework.fields import SerializerMethodField
+
+import api.constraints
 
 from recipes.models import (
     Favorite,
@@ -101,12 +102,10 @@ class SubscribeListSerializer(UserSerializer):
         if user.follower.filter(author=author_id).exists():
             raise ValidationError(
                 detail="Подписка уже существует",
-                code=status.HTTP_400_BAD_REQUEST,
             )
         if user == author:
             raise ValidationError(
                 detail="Нельзя подписаться на самого себя",
-                code=status.HTTP_400_BAD_REQUEST,
             )
         return data
 
@@ -241,20 +240,17 @@ class CreateRecipeSerializer(serializers.ModelSerializer):
         if not tags:
             raise ValidationError(
                 detail="Отсутствует тег",
-                code=status.HTTP_400_BAD_REQUEST,
             )
-        # if tags != list(set(tags)):
-        #     raise ValidationError(
-        #         detail="Одинаковые теги",
-        #         code=status.HTTP_400_BAD_REQUEST,
-        #     )
+        if len(tags) != len(list(set(tags))):
+            raise ValidationError(
+                detail="Одинаковые теги",
+            )
         return tags
 
     def validate_cooking_time(self, cooking_time):
-        if cooking_time < 1:
+        if cooking_time < api.constraints.COOKING_TIME_MIN_VALUE:
             raise serializers.ValidationError(
                 "Время готовки должно быть не меньше одной минуты",
-                code=status.HTTP_400_BAD_REQUEST,
             )
         return cooking_time
 
@@ -263,7 +259,6 @@ class CreateRecipeSerializer(serializers.ModelSerializer):
         if not ingredients:
             raise serializers.ValidationError(
                 "Отсутствуют ингридиенты",
-                code=status.HTTP_400_BAD_REQUEST,
             )
         for ingredient in ingredients:
             if ingredient["id"] in ingredients_list:
@@ -279,7 +274,6 @@ class CreateRecipeSerializer(serializers.ModelSerializer):
                 )
         return ingredients
 
-    @transaction.atomic
     def create_ingredients_amounts(self, ingredients, recipe):
         ingredient_list = [
             IngredientRecipe(
@@ -291,27 +285,23 @@ class CreateRecipeSerializer(serializers.ModelSerializer):
             else None
             for ingredient in ingredients
         ]
-        if None in ingredient_list:
+        if not all(ingredient_list):
             raise serializers.ValidationError(
                 "Отсутствуют ингридиенты",
-                code=status.HTTP_400_BAD_REQUEST,
             )
-        else:
-            IngredientRecipe.objects.bulk_create(ingredient_list)
 
-    @transaction.atomic
+        IngredientRecipe.objects.bulk_create(ingredient_list)
+
     def create(self, validated_data):
         if not validated_data.get("tags"):
             raise serializers.ValidationError(
                 "Отсутствуют ингридиенты",
-                code=status.HTTP_400_BAD_REQUEST,
             )
         tags = validated_data.pop("tags")
         request = self.context.get("request", None)
         if not validated_data.get("ingredients"):
             raise serializers.ValidationError(
                 "Отсутствуют ингридиенты",
-                code=status.HTTP_400_BAD_REQUEST,
             )
         ingredients = validated_data.pop("ingredients")
         recipe = Recipe.objects.create(author=request.user, **validated_data)
@@ -319,25 +309,19 @@ class CreateRecipeSerializer(serializers.ModelSerializer):
         if not ingredients:
             raise serializers.ValidationError(
                 "Отсутствуют ингридиенты",
-                code=status.HTTP_400_BAD_REQUEST,
             )
-        else:
-            self.create_ingredients_amounts(
-                recipe=recipe, ingredients=ingredients
-            )
+
+        self.create_ingredients_amounts(recipe=recipe, ingredients=ingredients)
         return recipe
 
-    @transaction.atomic
     def update(self, instance, validated_data):
         if not validated_data.get("ingredients"):
             raise serializers.ValidationError(
                 "Отсутствуют ингридиенты",
-                code=status.HTTP_400_BAD_REQUEST,
             )
         if not validated_data.get("tags"):
             raise serializers.ValidationError(
                 "Отсутствуют теги",
-                code=status.HTTP_400_BAD_REQUEST,
             )
         tags = validated_data.pop("tags")
         ingredients = validated_data.pop("ingredients")
@@ -404,7 +388,6 @@ class ShoppingCartSerializer(serializers.ModelSerializer):
         if user.shopping_list.filter(recipe=data["recipe"]).exists():
             raise serializers.ValidationError(
                 status="Рецепт уже добавлен в корзину",
-                code=status.HTTP_400_BAD_REQUEST,
             )
         return data
 
