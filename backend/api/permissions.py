@@ -7,10 +7,3 @@ class AuthorPermission(BasePermission):
 
     def has_object_permission(self, request, view, obj) -> bool:
         return request.method in SAFE_METHODS or obj.author == request.user
-
-
-class IsSubscribeOnly(BasePermission):
-    """Разрешает удаление только для действий с подписками."""
-
-    def has_permission(self, request, view) -> bool:
-        return view.action == "subscribe"

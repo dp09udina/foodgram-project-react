@@ -9,6 +9,7 @@ from rest_framework.permissions import (
     AllowAny,
     IsAuthenticated,
     IsAuthenticatedOrReadOnly,
+    DjangoModelPermissions,
 )
 from rest_framework.response import Response
 
@@ -25,7 +26,7 @@ from users.models import Follow, User
 
 from .filters import IngredientFilter, RecipeFilter
 from .pagination import CustomPagination
-from .permissions import AuthorPermission, IsSubscribeOnly
+from .permissions import AuthorPermission
 from .serializers import (
     CreateRecipeSerializer,
     FavoriteSerializer,
@@ -61,7 +62,6 @@ class TagViewSet(viewsets.ReadOnlyModelViewSet):
 class RecipeViewSet(viewsets.ModelViewSet):
     """Вывод работы с рецептами"""
 
-    queryset = Recipe.objects.all()
     serializer_class = CreateRecipeSerializer
     permission_classes = (
         AuthorPermission,
@@ -70,6 +70,11 @@ class RecipeViewSet(viewsets.ModelViewSet):
     pagination_class = CustomPagination
     filter_backends = (DjangoFilterBackend,)
     filterset_class = RecipeFilter
+
+    def get_queryset(self):
+        return Recipe.objects.select_related("author").prefetch_related(
+            "ingredients", "tags"
+        )
 
     def get_serializer_class(
         self,
@@ -173,42 +178,40 @@ class UserViewSet(UserViewSet):
     def get_permissions(
         self,
     ):
-        if self.request.method == "DELETE":
-            return [IsSubscribeOnly()]
-        if self.action in ["me", "subscriptions", "subscribe"]:
+        if self.request.method == "DELETE" or self.action in [
+            "me",
+            "subscriptions",
+            "subscribe",
+        ]:
             return [IsAuthenticated()]
         return [AllowAny()]
 
     @action(
         detail=True,
-        methods=["post", "delete"],
-        permission_classes=[IsAuthenticated],
+        methods=["POST"],
     )
     def subscribe(self, request, id):
         user = request.user
         author = get_object_or_404(User, pk=id)
-        if request.method == "POST":
-            serializer = SubscribeListSerializer(
-                author, data=request.data, context={"request": request}
-            )
-            serializer.is_valid(raise_exception=True)
-            Follow.objects.create(user=user, author=author)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-        if request.method == "DELETE":
-            if request.user.is_anonymous:
-                return Response(status=status.HTTP_401_UNAUTHORIZED)
-            if not Follow.objects.filter(
-                user=request.user, author=author
-            ).first():
-                return Response(status=status.HTTP_400_BAD_REQUEST)
-            following = get_object_or_404(
-                Follow, user=request.user, author=author
-            )
-            following.delete()
-            return Response(status=status.HTTP_204_NO_CONTENT)
+        serializer = SubscribeListSerializer(
+            author, data=request.data, context={"request": request}
+        )
+        serializer.is_valid(raise_exception=True)
+        Follow.objects.create(user=user, author=author)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-    @action(detail=False, permission_classes=[IsAuthenticated])
+    @subscribe.mapping.delete
+    def unsubscribe(self, request, id):
+        author = get_object_or_404(User, pk=id)
+
+        if not Follow.objects.filter(user=request.user, author=author).first():
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+        following = get_object_or_404(Follow, user=request.user, author=author)
+        following.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(detail=False)
     def subscriptions(self, request):
         user = request.user
         queryset = User.objects.filter(following__user=user)

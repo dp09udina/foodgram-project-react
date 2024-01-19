@@ -7,9 +7,8 @@ from django.core.validators import (
 from django.db import models
 from django.db.models import UniqueConstraint
 
+import api.constraints
 from users.models import User
-
-LENGTH_OF_FIELDS_RECIPES = 200
 
 
 class Ingredient(models.Model):
@@ -36,7 +35,7 @@ class Tag(models.Model):
 
     name = models.CharField(
         verbose_name="Название тега",
-        max_length=LENGTH_OF_FIELDS_RECIPES,
+        max_length=api.constraints.LENGTH_OF_FIELDS_RECIPES,
         db_index=True,
         unique=True,
     )
@@ -53,7 +52,7 @@ class Tag(models.Model):
         ],
     )
     slug = models.SlugField(
-        max_length=LENGTH_OF_FIELDS_RECIPES,
+        max_length=api.constraints.LENGTH_OF_FIELDS_RECIPES,
         verbose_name="Slug",
         unique=True,
     )
@@ -78,7 +77,7 @@ class Recipe(models.Model):
     )
     name = models.CharField(
         verbose_name="Название рецепта",
-        max_length=LENGTH_OF_FIELDS_RECIPES,
+        max_length=api.constraints.LENGTH_OF_FIELDS_RECIPES,
     )
     image = models.ImageField(
         upload_to="recipes/image/", verbose_name="Изображение"
