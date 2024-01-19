@@ -9,7 +9,6 @@ from rest_framework.permissions import (
     AllowAny,
     IsAuthenticated,
     IsAuthenticatedOrReadOnly,
-    DjangoModelPermissions,
 )
 from rest_framework.response import Response
 
