@@ -7,7 +7,7 @@ from django.core.validators import (
 from django.db import models
 from django.db.models import UniqueConstraint
 
-import api.constraints
+import api.constants
 from users.models import User
 
 
@@ -35,7 +35,7 @@ class Tag(models.Model):
 
     name = models.CharField(
         verbose_name="Название тега",
-        max_length=api.constraints.LENGTH_OF_FIELDS_RECIPES,
+        max_length=api.constants.LENGTH_OF_FIELDS_RECIPES,
         db_index=True,
         unique=True,
     )
@@ -52,7 +52,7 @@ class Tag(models.Model):
         ],
     )
     slug = models.SlugField(
-        max_length=api.constraints.LENGTH_OF_FIELDS_RECIPES,
+        max_length=api.constants.LENGTH_OF_FIELDS_RECIPES,
         verbose_name="Slug",
         unique=True,
     )
@@ -77,7 +77,7 @@ class Recipe(models.Model):
     )
     name = models.CharField(
         verbose_name="Название рецепта",
-        max_length=api.constraints.LENGTH_OF_FIELDS_RECIPES,
+        max_length=api.constants.LENGTH_OF_FIELDS_RECIPES,
     )
     image = models.ImageField(
         upload_to="recipes/image/", verbose_name="Изображение"
@@ -94,7 +94,8 @@ class Recipe(models.Model):
                 1, message="Время приготовления не менее 1 минуты!"
             ),
             MaxValueValidator(
-                1441, message="Время приготовления не более 24 часов!"
+                api.constants.COOKING_TIME_MAX_VALUE,
+                message="Время приготовления не более 24 часов!",
             ),
         ],
     )

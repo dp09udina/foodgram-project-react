@@ -13,3 +13,4 @@ gunicorn==20.1.0
 django-filter
 drf_yasg
 django-colorfield
+environs

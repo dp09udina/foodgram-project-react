@@ -12,7 +12,7 @@ from rest_framework.permissions import (
 )
 from rest_framework.response import Response
 
-import api.constraints
+import api.constants
 from recipes.models import (
     Favorite,
     Ingredient,
@@ -91,7 +91,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
                 f"({ingredient['ingredient__measurement_unit']}) - "
                 f"{ingredient['amount']}"
             )
-        file = api.constraints.SHOPPING_LIST_NAME
+        file = api.constants.SHOPPING_LIST_NAME
         response = HttpResponse(shopping_list, content_type="text/plain")
         response["Content-Disposition"] = f'attachment; filename="{file}.txt"'
         return response
@@ -112,14 +112,14 @@ class RecipeViewSet(viewsets.ModelViewSet):
         detail=True, methods=("POST",), permission_classes=[IsAuthenticated]
     )
     def shopping_cart(self, request, pk):
-        if not Recipe.objects.filter(id=pk).first():
+        if not Recipe.objects.filter(id=pk).exists():
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
         recipe = get_object_or_404(Recipe, id=pk)
         data = {"user": request.user.id, "recipe": recipe.id}
         if ShoppingCart.objects.filter(
             user=request.user, recipe=recipe
-        ).first():
+        ).exists():
             return Response(status=status.HTTP_400_BAD_REQUEST)
         serializer = ShoppingCartSerializer(
             data=data, context={"request": request}
@@ -133,7 +133,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
         recipe = get_object_or_404(Recipe, id=pk)
         if not ShoppingCart.objects.filter(
             user=request.user.id, recipe=recipe
-        ).first():
+        ).exists():
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
         ShoppingCart.objects.filter(
@@ -162,8 +162,10 @@ class RecipeViewSet(viewsets.ModelViewSet):
     @favorite.mapping.delete
     def destroy_favorite(self, request, pk) -> Response:
         recipe = get_object_or_404(Recipe, id=pk)
-        if Favorite.objects.filter(user=request.user, recipe=recipe).first():
-            Favorite.objects.filter(user=request.user, recipe=recipe).delete()
+        if favorite := Favorite.objects.filter(
+            user=request.user, recipe=recipe
+        ).first():
+            favorite.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
 
         return Response(status=status.HTTP_400_BAD_REQUEST)
@@ -204,7 +206,9 @@ class UserViewSet(UserViewSet):
     def unsubscribe(self, request, id):
         author = get_object_or_404(User, pk=id)
 
-        if not Follow.objects.filter(user=request.user, author=author).first():
+        if not Follow.objects.filter(
+            user=request.user, author=author
+        ).exists():
             return Response(status=status.HTTP_400_BAD_REQUEST)
         following = get_object_or_404(Follow, user=request.user, author=author)
         following.delete()

@@ -1,16 +1,17 @@
 import os
 
-from dotenv import load_dotenv
+from environs import Env
 
-load_dotenv()
+env = Env()
+env.read_env()
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-SECRET_KEY = os.getenv("TOKEN", "default-value")
+SECRET_KEY = env.str("SECRET_KEY")
 
-DEBUG = os.getenv("DEBUG", default=bool(False))
+DEBUG = env.bool("DEBUG", default=False)
 
-ALLOWED_HOSTS = [os.getenv("ALLOWED_HOSTS", default="*")]
+ALLOWED_HOSTS = [env.str("ALLOWED_HOSTS", default="*")]
 
 AUTH_USER_MODEL = "users.User"
 
@@ -71,18 +72,7 @@ if DEBUG:
         }
     }
 else:
-    DATABASES = {
-        "default": {
-            "ENGINE": os.getenv(
-                "DB_ENGINE", default="django.db.backends.postgresql"
-            ),
-            "NAME": os.getenv("DB_NAME", default="postgres"),
-            "USER": os.getenv("POSTGRES_USER", default="postgres"),
-            "PASSWORD": os.getenv("POSTGRES_PASSWORD", default="postgres"),
-            "HOST": os.getenv("DB_HOST", default="localhost"),
-            "PORT": os.getenv("DB_PORT", default="5432"),
-        }
-    }
+    DATABASES = {"default": env.dj_db_url("DATABASE_URL")}
 
 
 AUTH_PASSWORD_VALIDATORS = [

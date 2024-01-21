@@ -7,7 +7,7 @@ from rest_framework import serializers, status
 from rest_framework.exceptions import ValidationError
 from rest_framework.fields import SerializerMethodField
 
-import api.constraints
+import api.constants
 
 from recipes.models import (
     Favorite,
@@ -49,9 +49,7 @@ class UserSerializer(UserSerializer):
 
     def get_is_subscribed(self, obj):
         request = self.context.get("request")
-        if self.context.get("request").user.is_anonymous:
-            return False
-        return obj.following.filter(user=request.user).exists()
+        return obj.following.filter(user=request.user.id).exists()
 
 
 class UserCreateSerializer(UserCreateSerializer):
@@ -248,7 +246,7 @@ class CreateRecipeSerializer(serializers.ModelSerializer):
         return tags
 
     def validate_cooking_time(self, cooking_time):
-        if cooking_time < api.constraints.COOKING_TIME_MIN_VALUE:
+        if cooking_time < api.constants.COOKING_TIME_MIN_VALUE:
             raise serializers.ValidationError(
                 "Время готовки должно быть не меньше одной минуты",
             )
